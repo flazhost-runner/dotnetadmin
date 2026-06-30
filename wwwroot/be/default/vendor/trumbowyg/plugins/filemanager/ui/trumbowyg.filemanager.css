@@ -1,0 +1,6 @@
+/* Trumbowyg filemanager plugin styles */
+.trumbowyg-filemanager-modal{background:#fff;border-radius:.5rem;padding:1rem;}
+.tb-fm-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.tb-fm-file{display:inline-block;width:100px;margin:.25rem;cursor:pointer;text-align:center;border:1px solid #e5e7eb;border-radius:.5rem;padding:.5rem;}
+.tb-fm-file:hover{border-color:#3b82f6;background:#eff6ff;}
+.tb-fm-file img{max-width:80px;max-height:60px;object-fit:contain;}

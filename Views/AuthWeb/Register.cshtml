@@ -1,0 +1,75 @@
+@{
+    Layout = "_FullWidthLayout";
+    ViewBag.Title = "Register";
+}
+
+<div class="w-full max-w-5xl mx-auto">
+    <div class="tw-card overflow-hidden flex flex-col md:flex-row min-h-[520px]">
+        <!-- Left panel -->
+        <div class="md:w-1/2 flex flex-col items-center justify-center px-10 py-12 text-white"
+             style="background: linear-gradient(135deg, var(--theme-dark) 0%, var(--primary) 100%);">
+            <div class="w-24 h-24 rounded-2xl bg-white/15 backdrop-blur flex items-center justify-center mb-6 shadow-xl overflow-hidden">
+                @if (ViewBag.SettingLogo != null) {
+                    <img src="@ViewBag.SettingLogo" alt="logo" class="w-full h-full object-contain p-2">
+                } else {
+                    <i class="fas fa-user-plus text-4xl text-white"></i>
+                }
+            </div>
+            <h1 class="text-3xl font-bold mb-2 text-center">@(ViewBag.SettingName ?? "Admin Panel")</h1>
+            <p class="text-white/70 text-center text-sm">Create your account to get started</p>
+        </div>
+        <!-- Right panel: form -->
+        <div class="md:w-1/2 flex flex-col justify-center px-8 md:px-12 py-10 bg-white">
+            <h1 class="text-2xl font-bold mb-1" style="color:var(--theme-dark)">Create Account</h1>
+            <p class="text-gray-500 text-sm mb-7">Fill the form to register</p>
+
+            @if (ViewBag.FlashKey != null) {
+            <div class="alert @(ViewBag.FlashKey == "error" ? "alert-danger" : "alert-success") mb-5">
+                <i class="fas @(ViewBag.FlashKey == "error" ? "fa-exclamation-circle" : "fa-check-circle") me-2"></i>
+                @ViewBag.FlashMessage
+            </div>
+            }
+
+            <form action="/auth/register" method="POST" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label">Full Name</label>
+                        <input name="name" type="text" class="form-control" placeholder="John Doe"
+                               value="@ViewBag.OldName" autocomplete="name" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Code</label>
+                        <input name="code" type="text" class="form-control" placeholder="USR001"
+                               value="@ViewBag.OldCode">
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Email</label>
+                    <input name="email" type="email" class="form-control" placeholder="you@example.com"
+                           value="@ViewBag.OldEmail" autocomplete="email" required>
+                </div>
+                <div>
+                    <label class="form-label">Phone</label>
+                    <input name="phone" type="text" class="form-control" placeholder="+62..."
+                           value="@ViewBag.OldPhone">
+                </div>
+                <div>
+                    <label class="form-label">Password</label>
+                    <input name="password" type="password" class="form-control" placeholder="Min. 8 chars" autocomplete="new-password" required>
+                </div>
+                <div>
+                    <label class="form-label">Confirm Password</label>
+                    <input name="passwordConfirm" type="password" class="form-control" placeholder="••••••••" autocomplete="new-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary-tw w-full py-2.5 font-semibold">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+            </form>
+            <p class="text-center text-sm text-gray-500 mt-6">
+                Already have an account?
+                <a href="/auth/login" class="font-semibold no-underline hover:underline" style="color:var(--primary)">Sign in</a>
+            </p>
+        </div>
+    </div>
+</div>

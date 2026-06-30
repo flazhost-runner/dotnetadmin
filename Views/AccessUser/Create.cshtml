@@ -1,0 +1,153 @@
+@using DotNetAdmin.Core.Data.Entities
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var roles = (List<Role>)ViewBag.Roles;
+    var timezones = (List<string>)ViewBag.Timezones;
+    var errors = (Dictionary<string, string>)(ViewBag.FieldErrors ?? new Dictionary<string, string>());
+    var old = (Dictionary<string, string>)(ViewBag.OldInput ?? new Dictionary<string, string>());
+    string OldVal(string k) => old.TryGetValue(k, out var v) ? v : "";
+    string Err(string k) => errors.TryGetValue(k, out var v) ? v : "";
+}
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
+</div>
+
+<div class="tw-card p-6">
+    <h2 class="text-lg font-bold mb-4" style="color:var(--primary)">User Form</h2>
+    <form method="post" action="@Url.RouteUrl("admin.v1.access.user.store")" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label for="Code" class="form-label fw-semibold">Code</label>
+            <input id="Code" type="text" name="Code" value="@OldVal("code")"
+                   class="form-control @(!string.IsNullOrEmpty(Err("code")) ? "is-invalid" : "")">
+            @if (!string.IsNullOrEmpty(Err("code"))) { <div class="invalid-feedback">@Err("code")</div> }
+        </div>
+
+        <div class="mb-3">
+            <label for="Name" class="form-label fw-semibold">Name</label>
+            <input id="Name" type="text" name="Name" value="@OldVal("name")"
+                   class="form-control @(!string.IsNullOrEmpty(Err("name")) ? "is-invalid" : "")">
+            @if (!string.IsNullOrEmpty(Err("name"))) { <div class="invalid-feedback">@Err("name")</div> }
+        </div>
+
+        <div class="mb-3">
+            <label for="Phone" class="form-label fw-semibold">Phone Number</label>
+            <input id="Phone" type="text" name="Phone" value="@OldVal("phone")"
+                   class="form-control @(!string.IsNullOrEmpty(Err("phone")) ? "is-invalid" : "")">
+            @if (!string.IsNullOrEmpty(Err("phone"))) { <div class="invalid-feedback">@Err("phone")</div> }
+        </div>
+
+        <div class="mb-3">
+            <label for="Email" class="form-label fw-semibold">Email</label>
+            <input id="Email" type="email" name="Email" value="@OldVal("email")"
+                   class="form-control @(!string.IsNullOrEmpty(Err("email")) ? "is-invalid" : "")">
+            @if (!string.IsNullOrEmpty(Err("email"))) { <div class="invalid-feedback">@Err("email")</div> }
+        </div>
+
+        <div class="mb-3">
+            <label for="Timezone" class="form-label fw-semibold">Timezone</label>
+            <select id="Timezone" name="Timezone"
+                    class="form-control @(!string.IsNullOrEmpty(Err("timezone")) ? "is-invalid" : "")">
+                @foreach (var tz in timezones)
+                {
+                    <option value="@tz" selected="@(OldVal("timezone") == tz)">@tz</option>
+                }
+            </select>
+            @if (!string.IsNullOrEmpty(Err("timezone"))) { <div class="invalid-feedback">@Err("timezone")</div> }
+        </div>
+
+        <div class="mb-3">
+            <label for="Password" class="form-label fw-semibold">Password</label>
+            <input id="Password" type="password" name="Password"
+                   class="form-control @(!string.IsNullOrEmpty(Err("password")) ? "is-invalid" : "")">
+            @if (!string.IsNullOrEmpty(Err("password"))) { <div class="invalid-feedback">@Err("password")</div> }
+        </div>
+
+        <div class="mb-3">
+            <label for="password_confirmation" class="form-label fw-semibold">Password Confirm</label>
+            <input id="password_confirmation" type="password" name="password_confirmation"
+                   class="form-control">
+        </div>
+
+        <div class="mb-3">
+            <label for="Status" class="form-label fw-semibold">Status</label>
+            <select name="Status" id="Status" class="form-control" required>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="Picture" class="form-label fw-semibold">Picture</label>
+            <div class="preview mb-3" id="preview"><p class="text-muted text-sm text-gray-400">No image selected</p></div>
+            <input id="Picture" type="file" name="Picture" class="form-control" onchange="previewImage(event)">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold d-block">Blocked</label>
+            <div class="d-flex flex-wrap gap-3 p-2 rounded border">
+                <label class="d-flex align-items-center gap-2">
+                    <input id="Blocked" type="checkbox" name="Blocked" value="true" class="w-4 h-4">
+                    <span>Block account</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="mb-3" id="div_blocked_reason">
+            <label for="blocked_reason" class="form-label fw-semibold">Blocked Reason</label>
+            <input id="blocked_reason" type="text" name="blocked_reason" value="@OldVal("blocked_reason")"
+                   class="form-control">
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-semibold d-block">Role</label>
+            <div class="d-flex flex-wrap gap-3 p-2 rounded border">
+                @for (int i = 0; i < roles.Count; i++)
+                {
+                    var role = roles[i];
+                    <label class="d-flex align-items-center gap-2">
+                        <input id="roles@(i)" type="checkbox" name="Roles" value="@role.Id" class="w-4 h-4">
+                        <span>@role.Name</span>
+                    </label>
+                }
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary-tw px-4 py-2">
+                <i class="fas fa-save me-1"></i> Save
+            </button>
+            <a href="@Url.RouteUrl("admin.v1.access.user.index")" class="btn btn-danger px-4 py-2">Back</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function previewImage(event) {
+    const preview = document.getElementById('preview');
+    preview.innerHTML = '';
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.maxWidth = '160px';
+            img.className = 'rounded border p-1';
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.innerHTML = '<p class="text-sm text-gray-400">No image selected</p>';
+    }
+}
+$(document).ready(function() {
+    $('#div_blocked_reason').toggle($('#Blocked').is(':checked'));
+    $('#Blocked').click(function() {
+        if (this.checked) { $('#div_blocked_reason').show(); }
+        else { $('#blocked_reason').val(''); $('#div_blocked_reason').hide(); }
+    });
+});
+</script>

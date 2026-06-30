@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "DotNetAdmin",
+  "classifications": ["DotNetAdmin", "Module"],
+  "identity": "DotNetAdmin.Module",
+  "name": "DotNetAdmin Module",
+  "shortName": "dotnetadmin-module",
+  "description": "Scaffolds a new DotNetAdmin module with Controller, Service, Interface and DTO",
+  "tags": {
+    "language": "C#",
+    "type": "item"
+  },
+  "symbols": {
+    "ModuleName": {
+      "type": "parameter",
+      "description": "The module name (PascalCase, e.g. Blog)",
+      "datatype": "string",
+      "replaces": "__ModuleName__",
+      "isRequired": true
+    },
+    "moduleName": {
+      "type": "generated",
+      "generator": "casing",
+      "parameters": {
+        "source": "ModuleName",
+        "toLower": true
+      },
+      "replaces": "__moduleName__"
+    }
+  }
+}

@@ -1,0 +1,164 @@
+@using DotNetAdmin.Core.Data.Entities
+@using DotNetAdmin.Modules.Access.Permission.Dtos
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var result = (PaginationResult<Permission>)ViewBag.Result;
+    var filter = (PermissionFilterDto)ViewBag.Filter;
+}
+
+<form id="selection" method="post" action="@Url.RouteUrl("admin.v1.access.permission.delete_selected")?_method=DELETE">
+    @Html.AntiForgeryToken()
+</form>
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Permission Management</h1>
+</div>
+
+<div class="tw-card p-0 overflow-hidden">
+    <div class="px-6 py-4 border-b flex items-center justify-between">
+        <h2 class="text-lg font-bold" style="color:var(--primary)">Permission List</h2>
+        <div class="btn-group btn-sm">
+            <a class="btn btn-success btn-sm" href="@Url.RouteUrl("admin.v1.access.permission.create")">
+                <i class="fas fa-fw fa-plus"></i> Add Data
+            </a>
+            <button type="submit" form="selection" data-confirm="Confirm Delete" class="btn btn-danger btn-sm">
+                <i class="fas fa-fw fa-times"></i> Delete Selected
+            </button>
+        </div>
+    </div>
+
+    <div class="p-4" style="overflow-x:auto">
+        <table class="table table-bordered table-hover align-middle">
+            <thead>
+                <form id="searchform" method="get" action="@Url.RouteUrl("admin.v1.access.permission.index")">
+                    <tr>
+                        <th width="2%"></th>
+                        <th width="7%">
+                            <select name="q_page_size" class="form-control">
+                                <option value="10" selected="@(filter.PageSize == 10)">10</option>
+                                <option value="20" selected="@(filter.PageSize == 20)">20</option>
+                                <option value="50" selected="@(filter.PageSize == 50)">50</option>
+                                <option value="100" selected="@(filter.PageSize == 100)">100</option>
+                            </select>
+                        </th>
+                        <th width="18%">
+                            <input type="text" form="searchform" name="q_name" value="@(filter.QName ?? "")" class="form-control">
+                        </th>
+                        <th width="9%">
+                            <select form="searchform" name="q_guard" class="form-control">
+                                <option value="" disabled selected="@(string.IsNullOrEmpty(filter.QGuard))">Select</option>
+                                <option value="web" selected="@(filter.QGuard == "web")">web</option>
+                                <option value="api" selected="@(filter.QGuard == "api")">api</option>
+                            </select>
+                        </th>
+                        <th width="15%">
+                            <select form="searchform" name="q_method" class="form-control">
+                                <option value="" disabled selected="@(string.IsNullOrEmpty(filter.QMethod))">Select</option>
+                                <option value="GET" selected="@(filter.QMethod == "GET")">GET</option>
+                                <option value="POST" selected="@(filter.QMethod == "POST")">POST</option>
+                                <option value="PATCH" selected="@(filter.QMethod == "PATCH")">PATCH</option>
+                                <option value="PUT" selected="@(filter.QMethod == "PUT")">PUT</option>
+                                <option value="DELETE" selected="@(filter.QMethod == "DELETE")">DELETE</option>
+                            </select>
+                        </th>
+                        <th width="10%">
+                            <select form="searchform" name="q_status" class="form-control">
+                                <option value="" disabled selected="@(string.IsNullOrEmpty(filter.QStatus))">Select</option>
+                                <option value="Active" selected="@(filter.QStatus == "Active")">Active</option>
+                                <option value="Inactive" selected="@(filter.QStatus == "Inactive")">Inactive</option>
+                            </select>
+                        </th>
+                        <th width="15%">
+                            <input type="text" form="searchform" name="q_desc" value="@(filter.QDesc ?? "")" class="form-control">
+                        </th>
+                        <th width="5%" class="text-center align-middle">
+                            <div class="btn-group">
+                                <button form="searchform" type="submit" class="btn btn-sm btn-success"><i class="fas fa-fw fa-search"></i></button>
+                                <a href="@Url.RouteUrl("admin.v1.access.permission.index")" class="btn btn-sm btn-danger"><i class="fas fa-fw fa-times"></i></a>
+                            </div>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th width="5%"><input type="checkbox" id="checkall"></th>
+                        <th width="5%">No</th>
+                        <th width="18%">Name</th>
+                        <th width="9%">Guard</th>
+                        <th width="15%">Method</th>
+                        <th width="10%">Status</th>
+                        <th width="15%">Description</th>
+                        <th width="5%">Action</th>
+                    </tr>
+                </form>
+            </thead>
+            <tbody>
+                @{ int rowNum = result.From; }
+                @foreach (var perm in result.Data)
+                {
+                    <tr>
+                        <td><input type="checkbox" form="selection" name="selected[]" value="@perm.Id"></td>
+                        <td>@rowNum</td>
+                        <td>@perm.Name</td>
+                        <td><span class="badge text-bg-primary">@perm.GuardName</span></td>
+                        <td>@perm.Method</td>
+                        <td class="text-left">
+                            @if (perm.Status == "Active")
+                            {
+                                <i class="fas fa-check-circle text-green-500 text-xl" title="Active"></i>
+                            }
+                            else
+                            {
+                                <i class="fas fa-times-circle text-red-500 text-xl" title="Inactive"></i>
+                            }
+                        </td>
+                        <td>@perm.Desc</td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle-dd>Action</button>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a class="dropdown-item" href="/admin/v1/access/permission/@perm.Id/edit">
+                                        <i class="fas fa-pen fa-fw"></i> Edit
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <form method="post" action="@Url.RouteUrl("admin.v1.access.permission.delete", new { id = perm.Id })?_method=DELETE" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" data-confirm="Confirm Delete" class="dropdown-item danger">
+                                            <i class="fas fa-trash fa-fw"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    rowNum++;
+                }
+                @if (!result.Data.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-gray-400 py-8">No data found</td></tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-end mt-4">
+            <nav>
+                <ul class="pagination">
+                    @if (result.HasPrev)
+                    {
+                        <li class="page-item"><a class="page-link" href="@Url.RouteUrl("admin.v1.access.permission.index")?q_page=@(result.Page - 1)&q_page_size=@filter.PageSize&q_name=@(filter.QName ?? "")&q_guard=@(filter.QGuard ?? "")&q_method=@(filter.QMethod ?? "")&q_status=@(filter.QStatus ?? "")&q_desc=@(filter.QDesc ?? "")">Previous</a></li>
+                    }
+                    @for (int p = 1; p <= result.TotalPages; p++)
+                    {
+                        <li class="page-item@Html.Raw(p == result.Page ? " active" : "")"><a class="page-link" href="@Url.RouteUrl("admin.v1.access.permission.index")?q_page=@p&q_page_size=@filter.PageSize&q_name=@(filter.QName ?? "")&q_guard=@(filter.QGuard ?? "")&q_method=@(filter.QMethod ?? "")&q_status=@(filter.QStatus ?? "")&q_desc=@(filter.QDesc ?? "")">@p</a></li>
+                    }
+                    @if (result.HasNext)
+                    {
+                        <li class="page-item"><a class="page-link" href="@Url.RouteUrl("admin.v1.access.permission.index")?q_page=@(result.Page + 1)&q_page_size=@filter.PageSize&q_name=@(filter.QName ?? "")&q_guard=@(filter.QGuard ?? "")&q_method=@(filter.QMethod ?? "")&q_status=@(filter.QStatus ?? "")&q_desc=@(filter.QDesc ?? "")">Next</a></li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script>
+    $("#checkall").click(function () { $('input:checkbox').not(this).prop('checked', this.checked); });
+</script>

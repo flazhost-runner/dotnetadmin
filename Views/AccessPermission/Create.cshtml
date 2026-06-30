@@ -1,0 +1,65 @@
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var errors = (Dictionary<string, string>)(ViewBag.FieldErrors ?? new Dictionary<string, string>());
+    var old = (Dictionary<string, string>)(ViewBag.OldInput ?? new Dictionary<string, string>());
+    string OldVal(string k, string def = "") => old.TryGetValue(k, out var v) ? v : def;
+    string Err(string k) => errors.TryGetValue(k, out var v) ? v : "";
+}
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Permission Management</h1>
+</div>
+
+<div class="tw-card p-6">
+    <h2 class="text-lg font-bold mb-4" style="color:var(--primary)">Permission Form</h2>
+    <form method="post" action="@Url.RouteUrl("admin.v1.access.permission.store")">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label for="name" class="form-label fw-semibold">Name</label>
+            <input id="name" type="text" name="name" value="@OldVal("name")"
+                   class="form-control @(!string.IsNullOrEmpty(Err("name")) ? "is-invalid" : "")">
+            @if (!string.IsNullOrEmpty(Err("name"))) { <div class="invalid-feedback">@Err("name")</div> }
+        </div>
+
+        <div class="mb-3">
+            <label for="guard_name" class="form-label fw-semibold">Guard</label>
+            <select name="guard_name" id="guard_name" class="form-control">
+                <option value="web" selected="@(OldVal("guard_name", "web") == "web")">web</option>
+                <option value="api" selected="@(OldVal("guard_name", "web") == "api")">api</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="method" class="form-label fw-semibold">Method</label>
+            <select id="method" name="method" class="form-control">
+                <option value="">-- Select Method --</option>
+                <option value="GET" selected="@(OldVal("method") == "GET")">GET</option>
+                <option value="POST" selected="@(OldVal("method") == "POST")">POST</option>
+                <option value="PUT" selected="@(OldVal("method") == "PUT")">PUT</option>
+                <option value="PATCH" selected="@(OldVal("method") == "PATCH")">PATCH</option>
+                <option value="DELETE" selected="@(OldVal("method") == "DELETE")">DELETE</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="desc" class="form-label fw-semibold">Description</label>
+            <input id="desc" type="text" name="desc" value="@OldVal("desc")" class="form-control">
+        </div>
+
+        <div class="mb-4">
+            <label for="status" class="form-label fw-semibold">Status</label>
+            <select name="status" id="status" class="form-control">
+                <option value="Active" selected="@(OldVal("status", "Active") != "Inactive")">Active</option>
+                <option value="Inactive" selected="@(OldVal("status", "Active") == "Inactive")">Inactive</option>
+            </select>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary-tw px-4 py-2">
+                <i class="fas fa-save me-1"></i> Save
+            </button>
+            <a href="@Url.RouteUrl("admin.v1.access.permission.index")" class="btn btn-danger px-4 py-2">Back</a>
+        </div>
+    </form>
+</div>

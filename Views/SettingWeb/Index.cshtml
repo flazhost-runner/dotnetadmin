@@ -1,0 +1,248 @@
+@model DotNetAdmin.Core.Data.Entities.Setting
+@using DotNetAdmin.Core.Themes
+@using DotNetAdmin.Core.Helpers
+@using DotNetAdmin.Modules.Setting
+@{
+    Layout = "_AdminLayout";
+    ViewBag.Title = "Setting";
+    var themes = ThemeConfig.Themes;
+    var catalog = ViewBag.CatalogResult as PaginationResult<FeCatalogItem>;
+    var categories = ViewBag.Categories as List<string> ?? new();
+    var activeSlug = Model?.FeTemplate ?? "agency-consulting-002-creative-agency";
+}
+
+<h1 class="text-2xl font-bold text-gray-800 mb-6">Setting</h1>
+
+<form method="POST" action="/admin/v1/setting/update?_method=PUT" enctype="multipart/form-data" id="setting-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="fe_template" id="fe_template_input" value="@activeSlug">
+
+    @* ── Section 1: Admin Theme ── *@
+    <div class="tw-card p-6 mb-6">
+        <div class="flex items-center gap-2 mb-4">
+            <i class="fas fa-palette" style="color:var(--primary)"></i>
+            <h2 class="text-lg font-bold" style="color:var(--primary)">Admin Theme</h2>
+        </div>
+        <div class="grid grid-cols-3 md:grid-cols-5 gap-3">
+            @foreach (var theme in themes)
+            {
+                var isActive = (Model?.Theme ?? "Blue") == theme.Name;
+                <label class="cursor-pointer">
+                    <input type="radio" name="theme" value="@theme.Name" class="sr-only" @(isActive ? "checked" : "")>
+                    <div class="theme-swatch rounded-xl overflow-hidden border-2 transition-all @(isActive ? "border-gray-800 scale-105" : "border-transparent hover:border-gray-400")"  style="box-shadow:0 4px 10px rgba(0,0,0,.08)">
+                        <div class="h-5" style="background:@theme.Dark"></div>
+                        <div class="h-5" style="background:@theme.Primary"></div>
+                        <div class="h-5" style="background:@theme.Secondary"></div>
+                        <div class="h-5" style="background:@theme.Light"></div>
+                        <div class="p-1 bg-white text-center text-xs font-medium text-gray-700 flex items-center justify-center gap-1">
+                            @theme.Name
+                            @if (isActive) { <i class="fas fa-check text-green-500 text-xs"></i> }
+                        </div>
+                    </div>
+                </label>
+            }
+        </div>
+    </div>
+
+    @* ── Section 2: Frontend Template Catalog ── *@
+    <div class="tw-card p-6 mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-window-maximize" style="color:var(--primary)"></i>
+                <h2 class="text-lg font-bold" style="color:var(--primary)">Frontend Template</h2>
+            </div>
+            <form id="fe_search_form" method="GET" action="/admin/v1/setting" class="flex flex-wrap gap-2">
+                <input type="text" name="fe_search" value="@ViewBag.FeSearch" placeholder="Search templates…" class="form-control text-sm" style="width:180px">
+                <select name="fe_category" class="form-control text-sm" style="width:140px">
+                    <option value="">All Categories</option>
+                    @foreach (var cat in categories)
+                    {
+                        if ((string?)ViewBag.FeCategory == cat)
+                        {
+                            <option value="@cat" selected>@cat</option>
+                        }
+                        else
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    }
+                </select>
+                <button type="submit" class="btn btn-success btn-sm">Search</button>
+                <a href="/admin/v1/setting" class="btn btn-danger btn-sm">Reset</a>
+            </form>
+        </div>
+
+        @if (catalog != null && catalog.Data.Count > 0)
+        {
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                @foreach (var item in catalog.Data)
+                {
+                    var isActive = item.Slug == activeSlug;
+                    <div class="fe-card border-2 rounded-xl overflow-hidden cursor-pointer transition-all"
+                         data-slug="@item.Slug"
+                         onclick="selectTemplate('@item.Slug', this)"
+                         style="border-color:@(isActive ? "var(--primary)" : "transparent")">
+                        <div class="relative bg-gray-100" style="height:140px;overflow:hidden">
+                            <iframe class="fe-thumb" data-slug="@item.Slug"
+                                    style="width:1280px;height:800px;transform:scale(0.21875);transform-origin:top left;pointer-events:none;border:0"
+                                    loading="lazy"
+                                    sandbox="allow-same-origin"></iframe>
+                            @if (isActive)
+                            {
+                                <div class="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                                    <i class="fas fa-check"></i> Active
+                                </div>
+                            }
+                        </div>
+                        <div class="p-3 bg-white border-t">
+                            <p class="text-sm font-medium text-gray-700 truncate capitalize">@item.Name</p>
+                            <p class="text-xs text-gray-400">@item.Category</p>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (catalog.TotalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination">
+                        @if (catalog.HasPrev)
+                        {
+                            <li class="page-item"><a class="page-link" href="/admin/v1/setting?fe_page=@(catalog.Page - 1)&fe_search=@ViewBag.FeSearch&fe_category=@ViewBag.FeCategory">Previous</a></li>
+                        }
+                        @foreach (var pg in PaginationHelper.GetWindowedPages(catalog.Page, catalog.TotalPages))
+                        {
+                            if (pg == null)
+                            {
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            }
+                            else
+                            {
+                                <li class="page-item @(pg == catalog.Page ? "active" : "")">
+                                    <a class="page-link" href="/admin/v1/setting?fe_page=@pg&fe_search=@ViewBag.FeSearch&fe_category=@ViewBag.FeCategory">@pg</a>
+                                </li>
+                            }
+                        }
+                        @if (catalog.HasNext)
+                        {
+                            <li class="page-item"><a class="page-link" href="/admin/v1/setting?fe_page=@(catalog.Page + 1)&fe_search=@ViewBag.FeSearch&fe_category=@ViewBag.FeCategory">Next</a></li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+        else
+        {
+            <p class="text-gray-400 text-sm py-4 text-center">No templates found. Check your connection to fetch the catalog.</p>
+        }
+    </div>
+
+    @* ── Section 3: Setting Form ── *@
+    <div class="tw-card p-6 mb-6">
+        <h2 class="text-lg font-bold mb-4" style="color:var(--primary)">Setting Form</h2>
+
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[initial]</label>
+            <input type="text" name="Initial" class="form-control" value="@Model?.Initial">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[name]</label>
+            <input type="text" name="Name" class="form-control" value="@Model?.Name">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[description]</label>
+            <textarea name="Description" class="trumbowyg-editor form-control">@Html.Raw(Model?.Description ?? "")</textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[icon]</label>
+            <div class="mb-2"><img src="@Model?.Icon" alt="icon" width="60" height="60" class="rounded border p-1"></div>
+            <input type="file" name="icon" class="form-control" accept="image/*" onchange="previewImageTo(this, this.previousElementSibling.querySelector('img'))">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[logo]</label>
+            <div class="mb-2"><img src="@Model?.Logo" alt="logo" style="max-height:60px;max-width:200px" class="rounded border p-1"></div>
+            <input type="file" name="logo" class="form-control" accept="image/*" onchange="previewImageTo(this, this.previousElementSibling.querySelector('img'))">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[favicon]</label>
+            <div class="mb-2"><img src="@Model?.Favicon" alt="favicon" width="32" height="32" class="rounded border p-1"></div>
+            <input type="file" name="favicon" class="form-control" accept="image/*" onchange="previewImageTo(this, this.previousElementSibling.querySelector('img'))">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[login_image]</label>
+            <div class="mb-2"><img src="@Model?.LoginImage" alt="login_image" style="max-height:120px;max-width:300px" class="rounded border p-1"></div>
+            <input type="file" name="login_image" class="form-control" accept="image/*" onchange="previewImageTo(this, this.previousElementSibling.querySelector('img'))">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[phone]</label>
+            <input type="text" name="Phone" class="form-control" value="@Model?.Phone">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[address]</label>
+            <input type="text" name="Address" class="form-control" value="@Model?.Address">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[email]</label>
+            <input type="email" name="Email" class="form-control" value="@Model?.Email">
+        </div>
+        <div class="mb-3">
+            <label class="form-label fw-semibold">[copyright]</label>
+            <input type="text" name="Copyright" class="form-control" value="@Model?.Copyright">
+        </div>
+
+        <button type="submit" class="btn btn-primary-tw px-4 py-2"><i class="fas fa-save me-1"></i> Save</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+function previewImageTo(input, imgEl) {
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) { imgEl.src = e.target.result; };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function selectTemplate(slug, el) {
+    document.querySelectorAll('.fe-card').forEach(function(c) { c.style.borderColor = 'transparent'; });
+    el.style.borderColor = 'var(--primary)';
+    document.getElementById('fe_template_input').value = slug;
+    localStorage.setItem('fe_template_selected', slug);
+}
+
+(function() {
+    var saved = localStorage.getItem('fe_template_selected');
+    if (saved) {
+        var card = document.querySelector('.fe-card[data-slug="' + saved + '"]');
+        if (card) card.style.borderColor = 'var(--primary)';
+        document.getElementById('fe_template_input').value = saved;
+    }
+})();
+
+(function() {
+    var htmlCache = {};
+    function loadThumb(iframe) {
+        var slug = iframe.getAttribute('data-slug');
+        if (htmlCache[slug]) { iframe.srcdoc = htmlCache[slug]; return; }
+        var cached = localStorage.getItem('fe_html_' + slug);
+        if (cached) { htmlCache[slug] = cached; iframe.srcdoc = cached; return; }
+        fetch('/admin/v1/setting/fe-preview/' + slug)
+            .then(function(r) { return r.ok ? r.text() : null; })
+            .then(function(html) {
+                if (!html) return;
+                html = html.replace('<head>', '<head><meta name="color-scheme" content="light"><style>*{color-scheme:light!important}</style>');
+                htmlCache[slug] = html;
+                try { localStorage.setItem('fe_html_' + slug, html); } catch(e) {}
+                iframe.srcdoc = html;
+            })
+            .catch(function(){});
+    }
+    var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) { loadThumb(entry.target); observer.unobserve(entry.target); }
+        });
+    }, { rootMargin: '200px' });
+    document.querySelectorAll('.fe-thumb').forEach(function(iframe) { observer.observe(iframe); });
+})();
+</script>
+}

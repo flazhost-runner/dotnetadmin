@@ -1,0 +1,53 @@
+@using DotNetAdmin.Core.Data.Entities
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var role = (Role)ViewBag.Role;
+    var errors = (Dictionary<string, string>)(ViewBag.FieldErrors ?? new Dictionary<string, string>());
+    var old = (Dictionary<string, string>)(ViewBag.OldInput ?? new Dictionary<string, string>());
+    string V(string k, string fallback) => old.Count > 0
+        ? (old.TryGetValue(k, out var v) ? v : fallback)
+        : fallback;
+    string Err(string k) => errors.TryGetValue(k, out var v) ? v : "";
+}
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Role Management</h1>
+</div>
+
+<div class="tw-card p-6">
+    <h2 class="text-lg font-bold mb-4" style="color:var(--primary)">Role Form</h2>
+    <form method="post"
+          action="@Url.RouteUrl("admin.v1.access.role.update", new { id = role.Id })?_method=PUT">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label for="name" class="form-label fw-semibold">Name</label>
+            <input id="name" type="text" name="Name" value="@V("name", role.Name)"
+                   class="form-control @(!string.IsNullOrEmpty(Err("name")) ? "is-invalid" : "")">
+            @if (!string.IsNullOrEmpty(Err("name"))) { <div class="invalid-feedback">@Err("name")</div> }
+        </div>
+
+        <div class="mb-3">
+            <label for="status" class="form-label fw-semibold">Status</label>
+            <select name="Status" id="status" class="form-control @(!string.IsNullOrEmpty(Err("status")) ? "is-invalid" : "")" required>
+                <option value="Active" selected="@(V("status", role.Status) == "Active")">Active</option>
+                <option value="Inactive" selected="@(V("status", role.Status) == "Inactive")">Inactive</option>
+            </select>
+            @if (!string.IsNullOrEmpty(Err("status"))) { <div class="invalid-feedback">@Err("status")</div> }
+        </div>
+
+        <div class="mb-4">
+            <label for="desc" class="form-label fw-semibold">Description</label>
+            <input id="desc" type="text" name="Desc" value="@V("desc", role.Desc ?? "")"
+                   class="form-control @(!string.IsNullOrEmpty(Err("desc")) ? "is-invalid" : "")">
+            @if (!string.IsNullOrEmpty(Err("desc"))) { <div class="invalid-feedback">@Err("desc")</div> }
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary-tw px-4 py-2">
+                <i class="fas fa-save me-1"></i> Save
+            </button>
+            <a href="@Url.RouteUrl("admin.v1.access.role.index")" class="btn btn-danger px-4 py-2 text-white">Back</a>
+        </div>
+    </form>
+</div>

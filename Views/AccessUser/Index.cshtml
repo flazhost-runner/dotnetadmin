@@ -1,0 +1,162 @@
+@using DotNetAdmin.Core.Data.Entities
+@using DotNetAdmin.Modules.Access.User.Dtos
+@{
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var result = (PaginationResult<User>)ViewBag.Result;
+    var filter = (UserFilterDto)ViewBag.Filter;
+    int rowNum = result.From;
+}
+
+<div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
+</div>
+
+@if (ViewBag.FlashKey != null)
+{
+    <div class="alert alert-@(ViewBag.FlashKey == "success" ? "success" : "danger") mb-4">
+        @ViewBag.FlashMessage
+    </div>
+}
+
+<div class="tw-card p-0 overflow-hidden">
+    <div class="px-6 py-4 border-b flex items-center justify-between">
+        <h2 class="text-lg font-bold" style="color:var(--primary)">User List</h2>
+        <div class="btn-group btn-sm">
+            <a href="@Url.RouteUrl("admin.v1.access.user.create")" class="btn btn-success btn-sm">
+                <i class="fas fa-fw fa-plus"></i> Add Data
+            </a>
+            <button type="submit" form="selection" formmethod="post"
+                    formaction="@Url.RouteUrl("admin.v1.access.user.delete_selected")?_method=DELETE"
+                    data-confirm="Confirm Delete" class="btn btn-danger btn-sm">
+                <i class="fas fa-fw fa-times"></i> Delete Selected
+            </button>
+        </div>
+    </div>
+
+    <div class="p-4" style="overflow-x:auto">
+        <table class="table table-bordered table-hover align-middle">
+            <thead>
+                <form id="searchform" method="get" action="@Url.RouteUrl("admin.v1.access.user.index")">
+                    <tr>
+                        <th width="2%"></th>
+                        <th width="5%">
+                            <select name="q_page_size" id="q_page_size" class="form-control">
+                                <option value="10" selected="@(filter.PageSize == 10)">10</option>
+                                <option value="20" selected="@(filter.PageSize == 20)">20</option>
+                                <option value="50" selected="@(filter.PageSize == 50)">50</option>
+                                <option value="100" selected="@(filter.PageSize == 100)">100</option>
+                            </select>
+                        </th>
+                        <th><input type="text" name="q_name" value="@(filter.q_name ?? "")" placeholder="Name…" class="form-control"></th>
+                        <th><input type="text" name="q_email" value="@(filter.q_email ?? "")" placeholder="Email…" class="form-control"></th>
+                        <th><input type="text" name="q_code" value="@(filter.q_code ?? "")" placeholder="Code…" class="form-control"></th>
+                        <th>
+                            <select name="q_status" class="form-control">
+                                <option value="" disabled selected="@(string.IsNullOrEmpty(filter.q_status))">Status</option>
+                                <option value="Active" selected="@(filter.q_status == "Active")">Active</option>
+                                <option value="Inactive" selected="@(filter.q_status == "Inactive")">Inactive</option>
+                            </select>
+                        </th>
+                        <th><input type="text" name="q_role" value="@(filter.q_role ?? "")" placeholder="Role…" class="form-control"></th>
+                        <th colspan="3" class="text-center align-middle">
+                            <div class="btn-group">
+                                <button type="submit" form="searchform" class="btn btn-sm btn-success"><i class="fas fa-fw fa-search"></i></button>
+                                <a href="@Url.RouteUrl("admin.v1.access.user.index")" class="btn btn-sm btn-danger"><i class="fas fa-fw fa-times"></i></a>
+                            </div>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th><input type="checkbox" id="checkall"/></th>
+                        <th>No</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Code</th>
+                        <th>Status</th>
+                        <th>Roles</th>
+                        <th>Picture</th>
+                        <th>Action</th>
+                    </tr>
+                </form>
+            </thead>
+            <tbody>
+                <form id="selection">
+                    @Html.AntiForgeryToken()
+                    @foreach (var user in result.Data)
+                    {
+                        <tr>
+                            <td><input type="checkbox" form="selection" name="ids" value="@user.Id"/></td>
+                            <td>@rowNum</td>
+                            <td>@user.Name</td>
+                            <td>@user.Email</td>
+                            <td>@user.Code</td>
+                            <td class="text-left">
+                                @if (user.Status == "Active")
+                                {
+                                    <i class="fas fa-check-circle text-green-500 text-xl" title="Active"></i>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-times-circle text-red-500 text-xl" title="Inactive"></i>
+                                }
+                            </td>
+                            <td>
+                                @foreach (var ur in user.UserRoles)
+                                {
+                                    <span class="badge text-bg-primary me-1">@ur.Role.Name</span>
+                                }
+                            </td>
+                            <td>
+                                <img src="@(string.IsNullOrEmpty(user.Picture) ? "/be/default/img/avatar.png" : user.Picture)"
+                                     alt="picture" style="max-width:60px" class="rounded border p-1">
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-toggle-dd aria-expanded="false">Action</button>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        <a href="@Url.RouteUrl("admin.v1.access.user.edit", new { id = user.Id })"
+                                           class="dropdown-item"><i class="fas fa-pen fa-fw"></i> Edit</a>
+                                        <div class="dropdown-divider"></div>
+                                        <form method="post" action="@Url.RouteUrl("admin.v1.access.user.delete", new { id = user.Id })?_method=DELETE" class="m-0">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" data-confirm="Confirm Delete" class="dropdown-item danger">
+                                                <i class="fas fa-trash fa-fw"></i> Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        rowNum++;
+                    }
+                    @if (!result.Data.Any())
+                    {
+                        <tr><td colspan="9" class="text-center text-gray-400 py-8">No users found.</td></tr>
+                    }
+                </form>
+            </tbody>
+        </table>
+
+        <div class="d-flex justify-content-end mt-4">
+            <nav>
+                <ul class="pagination">
+                    @if (result.HasPrev)
+                    {
+                        <li class="page-item"><a class="page-link" href="@Url.RouteUrl("admin.v1.access.user.index", new { q_name = filter.q_name, q_email = filter.q_email, q_status = filter.q_status, q_role = filter.q_role, q_page_size = filter.PageSize, Page = result.Page - 1 })">Previous</a></li>
+                    }
+                    @for (int p = 1; p <= result.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == result.Page ? "active" : "")"><a class="page-link" href="@Url.RouteUrl("admin.v1.access.user.index", new { q_name = filter.q_name, q_email = filter.q_email, q_status = filter.q_status, q_role = filter.q_role, q_page_size = filter.PageSize, Page = p })">@p</a></li>
+                    }
+                    @if (result.HasNext)
+                    {
+                        <li class="page-item"><a class="page-link" href="@Url.RouteUrl("admin.v1.access.user.index", new { q_name = filter.q_name, q_email = filter.q_email, q_status = filter.q_status, q_role = filter.q_role, q_page_size = filter.PageSize, Page = result.Page + 1 })">Next</a></li>
+                    }
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script>
+    $("#checkall").click(function () { $('input:checkbox').not(this).prop('checked', this.checked); });
+</script>

@@ -1,0 +1,67 @@
+@{
+    Layout = "_FullWidthLayout";
+    ViewBag.Title = "Login";
+}
+
+<div class="w-full max-w-5xl mx-auto">
+    <div class="tw-card overflow-hidden grid md:grid-cols-2">
+        <!-- Left panel: image -->
+        <div class="hidden md:flex sidebar-gradient items-center justify-center p-10">
+            <img src="/modules/setting/login-image.png" alt="login"
+                 class="h-14 mx-auto object-contain"
+                 onerror="this.style.display='none'">
+        </div>
+        <!-- Right panel: form -->
+        <div class="flex flex-col justify-center px-8 md:px-12 py-10 bg-white">
+            <img src="/logo.png" alt="logo" class="h-14 mx-auto object-contain mb-4"
+                 onerror="this.style.display='none'">
+            <h1 class="text-2xl font-bold mb-1" style="color:var(--primary)">Hello, Welcome Back!</h1>
+            <p class="text-sm text-gray-500 mb-6">Enter your credentials to continue</p>
+
+            @if (ViewBag.ErrorMessages != null)
+            {
+            <div class="alert alert-danger mb-4">
+                <ul class="mb-0 ps-3">
+                @foreach (var msg in (IEnumerable<string>)ViewBag.ErrorMessages)
+                {
+                    <li>@msg</li>
+                }
+                </ul>
+            </div>
+            }
+            @if (ViewBag.FlashKey != null)
+            {
+            <div class="alert @(ViewBag.FlashKey == "error" ? "alert-danger" : "alert-success") mb-4">
+                @ViewBag.FlashMessage
+            </div>
+            }
+
+            <form action="/auth/login" method="POST" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label class="form-label" for="email">Email address</label>
+                    <input id="email" name="email" type="email" class="form-control"
+                           placeholder="Email address" value="@ViewBag.OldEmail">
+                </div>
+                <div>
+                    <label class="form-label" for="password">Password</label>
+                    <input id="password" name="password" type="password" class="form-control"
+                           placeholder="Password">
+                </div>
+                <button type="submit" class="btn btn-primary-tw w-100 py-2 mb-3">Login</button>
+                <div class="d-flex justify-content-between small mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Keep me logged in</label>
+                    </div>
+                    <a href="/admin/v1/auth/reset/req" class="text-primary-tw text-decoration-none">Forgot password</a>
+                </div>
+            </form>
+            <hr class="my-4">
+            <p class="text-center text-sm text-gray-500">
+                Don't have an account?
+                <a href="/auth/register" class="text-primary-tw text-decoration-none fw-semibold">create here</a>
+            </p>
+        </div>
+    </div>
+</div>
