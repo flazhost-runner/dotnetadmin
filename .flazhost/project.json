@@ -1,9 +1,0 @@
-{
-  "name": "DotNetAdmin",
-  "language": "dotnet",
-  "install": ["dotnet restore"],
-  "migrate": [],
-  "start": "dotnet run --urls=http://0.0.0.0:${APP_PORT}",
-  "url": "http://localhost:${APP_PORT}",
-  "readyPath": "/"
-}
