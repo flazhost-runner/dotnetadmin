@@ -173,13 +173,6 @@ if (app.Environment.IsDevelopment() || app.Environment.EnvironmentName == "Test"
     await DbSeeder.SeedAsync(db);
 }
 
-// ── Permission sync (AFTER MapControllers + seed) ──────────────────────────────
-{
-    using var syncScope = app.Services.CreateScope();
-    var syncService = syncScope.ServiceProvider.GetRequiredService<IPermissionSyncService>();
-    await syncService.SyncAsync(app);
-}
-
 // ── Fail-fast on missing production secrets ────────────────────────────────────
 if (!app.Environment.IsDevelopment() && app.Environment.EnvironmentName != "Test")
 {

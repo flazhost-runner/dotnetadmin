@@ -58,7 +58,7 @@ public class RbacTests : IClassFixture<CustomWebApplicationFactory>
         using var scope = _factory.Services.CreateScope();
         var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
-        var result = await userService.GetAllAsync(new UserFilterDto { Page = 1, PageSize = 10 });
+        var result = await userService.GetAllAsync(new UserFilterDto { Page = 1, q_page_size = 10 });
 
         Assert.NotNull(result);
         Assert.True(result.TotalCount >= 1);

@@ -19,17 +19,21 @@ public class SettingWebController : Controller
     }
 
     [HttpGet("", Name = "admin.v1.setting.index")]
-    public async Task<IActionResult> Index([FromQuery] string? fe_search, [FromQuery] string? fe_category, [FromQuery] int fe_page = 1)
+    public async Task<IActionResult> Index(
+        [FromQuery] string? q_name, [FromQuery] string? q_category,
+        [FromQuery] int q_page = 1, [FromQuery] int q_page_size = 12)
     {
         var setting = await _settingService.GetAsync();
-        var catalog = await _catalogService.GetCatalogAsync(fe_search, fe_category, fe_page, 12, setting.FeTemplate);
+        // Template aktif disematkan (pin) ke halaman 1 agar admin langsung
+        // melihat pilihan saat ini (paritas NodeAdmin SettingController.index).
+        var catalog = await _catalogService.GetCatalogAsync(q_name, q_category, q_page, q_page_size, setting.FeTemplate);
         var categories = await _catalogService.GetCategoriesAsync();
 
         ViewBag.Title = "Setting";
         ViewBag.CatalogResult = catalog;
         ViewBag.Categories = categories;
-        ViewBag.FeSearch = fe_search;
-        ViewBag.FeCategory = fe_category;
+        ViewBag.QName = q_name;
+        ViewBag.QCategory = q_category;
         return View(setting);
     }
 
@@ -52,8 +56,14 @@ public class SettingWebController : Controller
     [HttpGet("fe-preview/{slug}", Name = "admin.v1.setting.fe_preview")]
     public async Task<IActionResult> FePreview(string slug)
     {
-        var html = await _catalogService.GetPreviewHtmlAsync(slug);
-        if (html == null) return NotFound();
-        return Content(html, "text/html");
+        try
+        {
+            var html = await _catalogService.GetPreviewHtmlAsync(slug);
+            return Content(html, "text/html; charset=utf-8");
+        }
+        catch (AppException ex)
+        {
+            return StatusCode(ex.StatusCode, ex.Message);
+        }
     }
 }

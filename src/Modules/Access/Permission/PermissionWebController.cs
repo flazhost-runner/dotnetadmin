@@ -9,15 +9,20 @@ namespace DotNetAdmin.Modules.Access.Permission;
 public class PermissionWebController : Controller
 {
     private readonly IPermissionService _permissionService;
+    private readonly IPermissionSyncService _permissionSync;
 
-    public PermissionWebController(IPermissionService permissionService)
+    public PermissionWebController(IPermissionService permissionService, IPermissionSyncService permissionSync)
     {
         _permissionService = permissionService;
+        _permissionSync = permissionSync;
     }
 
     [HttpGet("/admin/v1/access/permission", Name = "admin.v1.access.permission.index")]
     public async Task<IActionResult> Index([FromQuery] PermissionFilterDto filter)
     {
+        // Auto-discover: upsert permission dari route ter-registrasi (idempoten)
+        // — paritas NodeAdmin PermissionController.index → getAllRegisteredRoute.
+        await _permissionSync.SyncAsync();
         var result = await _permissionService.GetAllAsync(filter);
         ViewBag.Title = "Permission Management";
         ViewBag.Result = result;

@@ -41,13 +41,21 @@ public class SettingService : ISettingService
         if (dto.Address != null) setting.Address = dto.Address;
         if (dto.Email != null) setting.Email = dto.Email;
         if (dto.Copyright != null) setting.Copyright = dto.Copyright;
-        if (!string.IsNullOrEmpty(dto.Theme)) setting.Theme = dto.Theme;
+        if (!string.IsNullOrEmpty(dto.Theme))
+        {
+            if (!ThemeConfig.Themes.Any(t => t.Name.Equals(dto.Theme, StringComparison.OrdinalIgnoreCase)))
+                throw new AppException("Theme tidak dikenali", 400);
+            setting.Theme = dto.Theme;
+        }
         if (!string.IsNullOrEmpty(dto.fe_template))
         {
-            var oldTemplate = setting.FeTemplate;
+            // Validasi slug (anti-SSRF: 'default' atau pola opentailwind) lalu
+            // unduh + cache SAAT Save (aktivasi) — gagal unduh menggagalkan Save
+            // dengan pesan jelas (paritas NodeAdmin SettingService.update).
+            if (!_feTemplate.IsValidSlug(dto.fe_template))
+                throw new AppException("Template tidak dikenali", 400);
+            await _feTemplate.EnsureAsync(dto.fe_template);
             setting.FeTemplate = dto.fe_template;
-            if (oldTemplate != dto.fe_template)
-                _ = _feTemplate.EnsureAsync(dto.fe_template); // fire-and-forget cache warmup
         }
 
         if (dto.Description != null)

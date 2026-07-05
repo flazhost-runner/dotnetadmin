@@ -94,7 +94,9 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient("github", c =>
         {
             c.DefaultRequestHeaders.Add("User-Agent", "DotNetAdmin/1.0");
-            c.Timeout = TimeSpan.FromSeconds(15);
+            // Batas atas; timeout efektif per-panggilan diatur via CancellationToken
+            // (preview 8s, download template 15s, tree katalog 20s).
+            c.Timeout = TimeSpan.FromSeconds(30);
         });
 
         // ── MVC filters ───────────────────────────────────────────────
