@@ -1,5 +1,7 @@
+using System.Net;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
+using StackExchange.Redis;
 using DotNetAdmin.Core.Middleware;
 using DotNetAdmin.Core.Filters;
 using DotNetAdmin.Modules.Auth;
@@ -44,10 +46,8 @@ public static class ServiceCollectionExtensions
         else if (sessionDriver == "redis")
         {
             var redisUrl = configuration["Redis:Url"] ?? "";
-            var redisConnStr = redisUrl.StartsWith("redis://")
-                ? redisUrl["redis://".Length..]
-                : redisUrl;
-            services.AddStackExchangeRedisCache(o => o.Configuration = redisConnStr);
+            var redisOptions = BuildRedisOptions(redisUrl);
+            services.AddStackExchangeRedisCache(o => o.ConfigurationOptions = redisOptions);
         }
         else
         {
@@ -112,5 +112,80 @@ public static class ServiceCollectionExtensions
         });
 
         return services;
+    }
+
+    /// <summary>
+    /// Bangun <see cref="ConfigurationOptions"/> dari REDIS_URL (redis:// atau rediss://).
+    /// StackExchange.Redis tidak mem-parse skema URL/userinfo secara native, jadi kita
+    /// urai manual host:port + password, dan untuk rediss:// (TLS) set Ssl=true beserta
+    /// SslHost = host — WAJIB agar TLS SNI terkirim (HAProxy flazhost me-route by SNI;
+    /// tanpa SNI koneksi ditutup → crash-loop → 504).
+    /// AbortOnConnectFail=false: Redis yang belum siap tidak memblokir startup HTTP.
+    /// </summary>
+    internal static ConfigurationOptions BuildRedisOptions(string redisUrl)
+    {
+        var options = new ConfigurationOptions
+        {
+            AbortOnConnectFail = false, // jangan crash saat Redis sempat tak tersedia
+        };
+
+        if (string.IsNullOrWhiteSpace(redisUrl))
+        {
+            options.EndPoints.Add("127.0.0.1", 6379);
+            return options;
+        }
+
+        var isTls = redisUrl.StartsWith("rediss://", StringComparison.OrdinalIgnoreCase);
+
+        // Coba parse sebagai URI (menangani skema, userinfo, host, port).
+        if (Uri.TryCreate(redisUrl, UriKind.Absolute, out var uri) &&
+            (uri.Scheme.Equals("redis", StringComparison.OrdinalIgnoreCase) ||
+             uri.Scheme.Equals("rediss", StringComparison.OrdinalIgnoreCase)))
+        {
+            var host = uri.Host;
+            var port = uri.Port > 0 ? uri.Port : (isTls ? 6380 : 6379);
+            options.EndPoints.Add(host, port);
+
+            if (!string.IsNullOrEmpty(uri.UserInfo))
+            {
+                var parts = uri.UserInfo.Split(':', 2);
+                // format: user:password — StackExchange pakai User + Password
+                if (parts.Length == 2)
+                {
+                    if (!string.IsNullOrEmpty(parts[0]) && parts[0] != "default")
+                        options.User = parts[0];
+                    options.Password = Uri.UnescapeDataString(parts[1]);
+                }
+                else if (parts.Length == 1 && !string.IsNullOrEmpty(parts[0]))
+                {
+                    options.Password = Uri.UnescapeDataString(parts[0]);
+                }
+            }
+
+            if (isTls)
+            {
+                options.Ssl = true;
+                options.SslHost = host; // TLS SNI = host REDIS_URL
+            }
+        }
+        else
+        {
+            // Bukan URL — perlakukan sebagai connection string StackExchange biasa.
+            var raw = redisUrl.StartsWith("redis://", StringComparison.OrdinalIgnoreCase)
+                ? redisUrl["redis://".Length..]
+                : redisUrl;
+            var parsed = ConfigurationOptions.Parse(raw);
+            parsed.AbortOnConnectFail = false;
+            if (parsed.Ssl && string.IsNullOrEmpty(parsed.SslHost))
+            {
+                // pastikan SNI terkirim bila TLS diaktifkan lewat connection string
+                parsed.SslHost = parsed.EndPoints
+                    .OfType<DnsEndPoint>()
+                    .FirstOrDefault()?.Host;
+            }
+            return parsed;
+        }
+
+        return options;
     }
 }
