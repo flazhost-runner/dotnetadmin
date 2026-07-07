@@ -2,6 +2,7 @@ using DotNetAdmin.Core.Data;
 using DotNetAdmin.Core.Extensions;
 using DotNetAdmin.Core.Middleware;
 using DotNetAdmin.Core.Storage;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.FileProviders;
 using System.Threading.RateLimiting;
@@ -117,6 +118,20 @@ builder.Services.AddRateLimiter(o =>
 var app = builder.Build();
 
 // ── Middleware Pipeline (ORDER MATTERS) ────────────────────────────────────────
+
+// 0. Forwarded headers — MUST run before anything that reads the request scheme
+//    (session/antiforgery/auth cookies with SameAsRequest, HTTPS redirects, URL gen).
+//    Behind a TLS-terminating reverse proxy (CapRover: browser→HTTPS→proxy→HTTP→app:80),
+//    the proxy forwards X-Forwarded-Proto: https. Without this, Request.IsHttps stays
+//    false → Secure cookies never get set → web login fails. KnownNetworks/KnownProxies
+//    are cleared because the proxy IP is unknown/dynamic in the container network.
+var fwdOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+fwdOptions.KnownNetworks.Clear();
+fwdOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(fwdOptions);
 
 // 1. Exception handler (must be first to catch all errors)
 app.UseExceptionHandler();
