@@ -55,6 +55,13 @@ dotnet run   # migrate + seed ulang otomatis
 dotnet test
 ```
 
+## API Collection (Postman)
+
+Import `docs/postman/DotNetAdmin.postman_collection.json` into Postman to exercise the REST API.
+
+- `base_url` collection variable defaults to `http://localhost:5000` (the app's default HTTP URL — see Quick Start).
+- Set the `access_token` variable after logging in via `POST /api/v1/auth/login` to authorize the protected requests.
+
 ## Convention Check
 
 ```bash

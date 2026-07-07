@@ -81,6 +81,13 @@ public class MySteps
 }
 ```
 
+## Manual API Testing (Postman)
+
+Import `docs/postman/DotNetAdmin.postman_collection.json` for manual/exploratory testing of the REST API.
+
+- `base_url` defaults to `http://localhost:5000` (the app's default HTTP URL).
+- After `POST /api/v1/auth/login`, set the `access_token` collection variable to authorize protected requests.
+
 ## Convention Check
 
 Run the full suite including build + convention checks:
