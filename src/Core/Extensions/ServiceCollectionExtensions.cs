@@ -11,6 +11,7 @@ using DotNetAdmin.Modules.Access.Permission;
 using DotNetAdmin.Modules.Profile;
 using DotNetAdmin.Modules.Setting;
 using DotNetAdmin.Modules.Media;
+using DotNetAdmin.Core.Storage;
 
 namespace DotNetAdmin.Core.Extensions;
 
@@ -89,6 +90,33 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFeCatalogService, FeCatalogService>();
         services.AddScoped<IFeTemplateService, FeTemplateService>();
         services.AddScoped<IMediaService, MediaService>();
+
+        // ── Storage adapter (driver: local | oss | s3) ────────────────
+        // Berpindah backend cukup via config STORAGE_DRIVER — tanpa ubah kode/view.
+        // DB menyimpan KEY objek; URL render dibangun saat request oleh IStorageService.
+        //   local  → file di STORAGE_BASE_PATH, dirender /storage/<key> (static middleware).
+        //   oss/s3 → URL absolut ter-presign (TTL).
+        services.AddHttpClient("storage");
+        services.AddSingleton<IStorageService>(sp =>
+        {
+            var cfg = sp.GetRequiredService<IOptions<StorageConfig>>().Value;
+            var driver = (cfg.Driver ?? "local").Trim().ToLowerInvariant();
+            if (driver == "local")
+            {
+                var env = sp.GetRequiredService<IWebHostEnvironment>();
+                var baseDir = LocalStorage.ResolveBaseDir(cfg.BasePath, env.ContentRootPath);
+                return new LocalStorageService(baseDir);
+            }
+
+            if (string.IsNullOrWhiteSpace(cfg.AccessKey) || string.IsNullOrWhiteSpace(cfg.SecretKey))
+                throw new InvalidOperationException(
+                    "Storage belum dikonfigurasi (STORAGE_ACCESS_KEY/STORAGE_SECRET_KEY kosong).");
+
+            var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+            return driver == "s3"
+                ? new S3StorageService(cfg, httpFactory)
+                : new OssStorageService(cfg, httpFactory);
+        });
 
         // ── HttpClient for GitHub catalog API ─────────────────────────
         services.AddHttpClient("github", c =>

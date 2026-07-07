@@ -1,5 +1,6 @@
 @using DotNetAdmin.Core.Data.Entities
 @using DotNetAdmin.Modules.Access.User.Dtos
+@inject IStorageService Storage
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     var result = (PaginationResult<User>)ViewBag.Result;
@@ -106,7 +107,7 @@
                                 }
                             </td>
                             <td>
-                                <img src="@(string.IsNullOrEmpty(user.Picture) ? "/be/default/img/avatar.png" : user.Picture)"
+                                <img src="@(string.IsNullOrEmpty(user.Picture) ? "/be/default/img/avatar.png" : Storage.Url(user.Picture))"
                                      alt="picture" style="max-width:60px" class="rounded border p-1">
                             </td>
                             <td class="text-center">

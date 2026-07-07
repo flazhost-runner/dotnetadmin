@@ -1,7 +1,9 @@
 using DotNetAdmin.Core.Data;
 using DotNetAdmin.Core.Extensions;
 using DotNetAdmin.Core.Middleware;
+using DotNetAdmin.Core.Storage;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.FileProviders;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -147,6 +149,29 @@ app.UseStaticFiles(new StaticFileOptions
             ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
     }
 });
+
+// 5a. Local storage (driver=local): serve uploaded objects at stable prefix /storage/<key>.
+//     URL dipisah dari path filesystem — STORAGE_BASE_PATH boleh absolut (mis. /app/storage
+//     di container) namun URL render tetap /storage/<key>. Untuk oss/s3 tak ada penyajian lokal
+//     (URL absolut ter-presign). Berpindah backend cukup via config, tanpa ubah kode/view.
+{
+    var storageCfg = app.Services.GetRequiredService<IOptions<StorageConfig>>().Value;
+    if (string.Equals(storageCfg.Driver, "local", StringComparison.OrdinalIgnoreCase))
+    {
+        var baseDir = LocalStorage.ResolveBaseDir(storageCfg.BasePath, app.Environment.ContentRootPath);
+        Directory.CreateDirectory(baseDir);
+        app.UseStaticFiles(new StaticFileOptions
+        {
+            FileProvider = new PhysicalFileProvider(baseDir),
+            RequestPath = LocalStorage.UrlPrefix,
+            OnPrepareResponse = ctx =>
+            {
+                if (!app.Environment.IsDevelopment())
+                    ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=604800";
+            }
+        });
+    }
+}
 
 // 6. Routing
 app.UseRouting();

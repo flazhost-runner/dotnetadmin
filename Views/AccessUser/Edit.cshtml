@@ -1,4 +1,5 @@
 @using DotNetAdmin.Core.Data.Entities
+@inject IStorageService Storage
 @{
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
     var user = (User)ViewBag.User;
@@ -86,7 +87,7 @@
             <label for="Picture" class="form-label fw-semibold">Picture</label>
             <div class="preview mb-3" id="preview">
                 @* img always rendered — JS fallback handles broken/null src (NodeAdmin pattern) *@
-                <img src="@user.Picture" alt="picture" style="max-width:160px" class="rounded border p-1">
+                <img src="@Storage.Url(user.Picture)" alt="picture" style="max-width:160px" class="rounded border p-1">
             </div>
             <input id="Picture" type="file" name="Picture" class="form-control" onchange="previewImage(event)">
         </div>

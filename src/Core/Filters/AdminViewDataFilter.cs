@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Filters;
+using DotNetAdmin.Core.Storage;
 
 namespace DotNetAdmin.Core.Filters;
 
@@ -6,11 +7,13 @@ public class AdminViewDataFilter : IAsyncActionFilter
 {
     private readonly ISettingCacheService _settingCache;
     private readonly AppDbContext _db;
+    private readonly IStorageService _storage;
 
-    public AdminViewDataFilter(ISettingCacheService settingCache, AppDbContext db)
+    public AdminViewDataFilter(ISettingCacheService settingCache, AppDbContext db, IStorageService storage)
     {
         _settingCache = settingCache;
         _db = db;
+        _storage = storage;
     }
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -44,7 +47,10 @@ public class AdminViewDataFilter : IAsyncActionFilter
                 if (user != null)
                 {
                     controller.ViewBag.AuthName = user.Name;
-                    controller.ViewBag.AuthPicture = user.Picture; // always set (null → JS fallback)
+                    // Bangun URL render dari key saat request (local → /storage/<key>, oss/s3 → presigned).
+                    controller.ViewBag.AuthPicture = string.IsNullOrEmpty(user.Picture)
+                        ? null
+                        : _storage.Url(user.Picture); // null → JS fallback
                     controller.ViewBag.AuthUser = user;
 
                     var roles = user.UserRoles.Select(ur => ur.Role).ToList();

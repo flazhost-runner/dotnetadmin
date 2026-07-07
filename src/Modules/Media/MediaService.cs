@@ -1,11 +1,13 @@
 using DotNetAdmin.Core.Errors;
+using DotNetAdmin.Core.Storage;
 
 namespace DotNetAdmin.Modules.Media;
 
 public class MediaService : IMediaService
 {
-    private readonly IWebHostEnvironment _env;
+    private readonly IStorageService _storage;
 
+    private const string Prefix = "editor";
     private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
     private const long MaxFileSizeBytes = 2 * 1024 * 1024; // 2MB
 
@@ -17,25 +19,19 @@ public class MediaService : IMediaService
         { ".webp", [0x52, 0x49, 0x46, 0x46] },
     };
 
-    public MediaService(IWebHostEnvironment env)
+    public MediaService(IStorageService storage)
     {
-        _env = env;
+        _storage = storage;
     }
 
-    private string StorageDir => Path.Combine(_env.WebRootPath, "storage", "editor");
-
-    public Task<List<MediaItem>> ListAsync()
+    public async Task<List<MediaItem>> ListAsync()
     {
-        Directory.CreateDirectory(StorageDir);
-        var items = Directory.GetFiles(StorageDir)
-            .Where(f => AllowedExtensions.Contains(Path.GetExtension(f).ToLower()))
-            .Select(f => {
-                var name = Path.GetFileName(f);
-                return new MediaItem(name, $"/storage/editor/{name}", $"editor/{name}");
-            })
+        var keys = await _storage.ListAsync(Prefix, 200);
+        return keys
+            .Where(k => AllowedExtensions.Contains(Path.GetExtension(k).ToLower()))
+            .Select(k => new MediaItem(Path.GetFileName(k), _storage.Url(k), k))
             .OrderByDescending(i => i.Name)
             .ToList();
-        return Task.FromResult(items);
     }
 
     public async Task<MediaItem> UploadAsync(IFormFile file)
@@ -62,28 +58,21 @@ public class MediaService : IMediaService
             stream.Seek(0, SeekOrigin.Begin);
         }
 
-        Directory.CreateDirectory(StorageDir);
-        var uniqueName = $"{Guid.NewGuid():N}{ext}";
-        var path = Path.Combine(StorageDir, uniqueName);
-        await using var dest = File.Create(path);
-        await stream.CopyToAsync(dest);
+        var key = $"{Prefix}/{Guid.NewGuid():N}{ext}";
+        await _storage.PutAsync(key, stream, file.ContentType);
 
-        return new MediaItem(uniqueName, $"/storage/editor/{uniqueName}", $"editor/{uniqueName}");
+        return new MediaItem(Path.GetFileName(key), _storage.Url(key), key);
     }
 
-    public Task DeleteAsync(string key)
+    public async Task DeleteAsync(string key)
     {
-        if (!key.StartsWith("editor/") || key.Contains(".."))
+        if (!key.StartsWith($"{Prefix}/") || key.Contains(".."))
             throw new ValidationAppException("Invalid file key");
 
-        var fileName = Path.GetFileName(key.Substring("editor/".Length));
+        var fileName = Path.GetFileName(key);
         if (string.IsNullOrEmpty(fileName))
             throw new ValidationAppException("Invalid file key");
 
-        var path = Path.Combine(StorageDir, fileName);
-        if (File.Exists(path))
-            File.Delete(path);
-
-        return Task.CompletedTask;
+        await _storage.DeleteAsync(key);
     }
 }

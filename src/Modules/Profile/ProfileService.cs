@@ -1,18 +1,19 @@
 using DotNetAdmin.Core.Data;
 using DotNetAdmin.Core.Data.Entities;
 using DotNetAdmin.Core.Errors;
+using DotNetAdmin.Core.Storage;
 
 namespace DotNetAdmin.Modules.Profile;
 
 public class ProfileService : IProfileService
 {
     private readonly AppDbContext _db;
-    private readonly IWebHostEnvironment _env;
+    private readonly IStorageService _storage;
 
-    public ProfileService(AppDbContext db, IWebHostEnvironment env)
+    public ProfileService(AppDbContext db, IStorageService storage)
     {
         _db = db;
-        _env = env;
+        _storage = storage;
     }
 
     public async Task<User> GetAsync(string userId)
@@ -42,14 +43,12 @@ public class ProfileService : IProfileService
 
         if (dto.Picture != null && dto.Picture.Length > 0)
         {
-            var dir = Path.Combine(_env.WebRootPath, "storage", "profile");
-            Directory.CreateDirectory(dir);
             var ext = Path.GetExtension(dto.Picture.FileName).ToLower();
-            var fileName = $"{userId}_{Guid.NewGuid():N}{ext}";
-            var fullPath = Path.Combine(dir, fileName);
-            await using var stream = File.Create(fullPath);
-            await dto.Picture.CopyToAsync(stream);
-            user.Picture = $"/storage/profile/{fileName}";
+            // DB simpan KEY (bukan URL); URL dibangun saat render oleh IStorageService.
+            var key = $"profile/{userId}_{Guid.NewGuid():N}{ext}";
+            await using var stream = dto.Picture.OpenReadStream();
+            await _storage.PutAsync(key, stream, dto.Picture.ContentType);
+            user.Picture = key;
         }
 
         await _db.SaveChangesAsync();

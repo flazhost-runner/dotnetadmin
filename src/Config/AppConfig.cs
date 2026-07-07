@@ -38,7 +38,7 @@ public class RedisConfig
 public class StorageConfig
 {
     public string Driver { get; set; } = "local";
-    public string BasePath { get; set; } = "storage";
+    public string BasePath { get; set; } = "storage/uploads";
     public string EditorFolder { get; set; } = "editor";
     public string Endpoint { get; set; } = string.Empty;
     public string Bucket { get; set; } = string.Empty;

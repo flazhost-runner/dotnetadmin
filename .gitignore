@@ -158,7 +158,14 @@ ClientBin/
 *.db-journal
 *.db-shm
 *.db-wal
-storage/
+# Uploaded content (storage adapter, driver=local): abaikan isi upload,
+# tetap simpan direktori lewat .gitkeep agar tersedia saat clone/deploy.
+/storage/*
+!/storage/uploads/
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+# Cache aset runtime/template di bawah wwwroot (bukan sumber, tidak di-commit)
+wwwroot/storage/
 _catalog.json
 wwwroot/fe/templates/
 .env

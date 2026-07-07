@@ -106,6 +106,73 @@ Tables: `users`, `roles`, `permissions`, `settings`, `users_roles`, `roles_permi
 - `permissions.name` is NOT unique (same route name can exist for `web` and `api` guard)
 - `status` = `varchar(20)` not ENUM (portable across dialects)
 
+## Storage & switching backends
+
+File uploads (profile pictures, media/editor images) go through a pluggable storage
+adapter (`IStorageService`) that mirrors NodeAdmin. **The database stores the object
+_key_ (e.g. `profile/ab12.png`) — never a URL.** The render URL is built _at request
+time_ by the active driver, so switching backends is a **config-only change (+ restart)**
+— no code or view edits.
+
+| Driver  | `Storage:Driver` | Where files live                          | Rendered URL                         |
+|---------|------------------|-------------------------------------------|--------------------------------------|
+| `local` | `local`          | `Storage:BasePath` on the local disk      | `/storage/<key>` (stable, relative)  |
+| `oss`   | `oss`            | Alibaba Cloud OSS bucket                   | absolute **presigned** URL (TTL)     |
+| `s3`    | `s3`             | AWS S3 / MinIO / R2 / B2 bucket            | absolute **presigned** URL (TTL)     |
+
+For `local`, a static-file middleware serves `Storage:BasePath` at the stable prefix
+`/storage` (registered only when the driver is `local`, in `Program.cs`). The URL prefix
+is **decoupled** from the filesystem path, so an absolute `Storage:BasePath` (e.g.
+`/app/storage` in a container) still renders as `/storage/<key>` — not `//app/...`.
+For `oss`/`s3` there is no local serving; `IStorageService.Url(key)` returns an absolute
+presigned URL valid for a limited TTL.
+
+### Switch the backend
+
+Edit config (env var `Storage__Driver` or `appsettings.json` `Storage:Driver`) and restart:
+
+```bash
+# Local (default)
+Storage__Driver=local
+Storage__BasePath=storage/uploads          # relative to ContentRoot, or absolute
+
+# S3 / S3-compatible (AWS, MinIO, Cloudflare R2, Backblaze B2)
+Storage__Driver=s3
+Storage__Bucket=your-bucket
+Storage__Region=us-east-1
+Storage__AccessKey=...  Storage__SecretKey=...  Storage__Ssl=true
+# Storage__Endpoint=minio.local:9000        # set for non-AWS (path-style); leave empty for AWS
+
+# Alibaba Cloud OSS
+Storage__Driver=oss
+Storage__Bucket=your-bucket
+Storage__Endpoint=oss-ap-southeast-5.aliyuncs.com
+Storage__AccessKey=...  Storage__SecretKey=...  Storage__Ssl=true
+```
+
+See `.env.example` for the full annotated list. Because the DB stores keys, existing
+records keep working after a switch **as long as the same keys exist in the new backend**.
+
+### Migrating existing files when you switch
+
+Copy the objects under `Storage:BasePath` into the target bucket, preserving key paths:
+
+```bash
+# → S3 (or S3-compatible)
+aws s3 sync ./storage/uploads/ s3://your-bucket/
+
+# → Alibaba OSS
+ossutil cp -r ./storage/uploads/ oss://your-bucket/
+```
+
+### Deployment caveats
+
+- **Uploads are git-ignored** — `storage/uploads/` contents are excluded (`.gitignore`),
+  only `storage/uploads/.gitkeep` is committed to preserve the directory.
+- **`local` in production is ephemeral** — on containers/PaaS the local disk is wiped on
+  every redeploy/restart. For a persistent `local` backend, mount a **persistent volume**
+  at `Storage:BasePath`; otherwise use `oss`/`s3`.
+
 ## Config
 
 ```json

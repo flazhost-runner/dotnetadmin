@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using DotNetAdmin.Core.Storage;
 
 namespace DotNetAdmin.Modules.Profile;
 
@@ -7,10 +8,12 @@ namespace DotNetAdmin.Modules.Profile;
 public class ProfileApiController : ControllerBase
 {
     private readonly IProfileService _profileService;
+    private readonly IStorageService _storage;
 
-    public ProfileApiController(IProfileService profileService)
+    public ProfileApiController(IProfileService profileService, IStorageService storage)
     {
         _profileService = profileService;
+        _storage = storage;
     }
 
     [HttpGet("/api/v1/profile", Name = "api.v1.profile.index")]
@@ -25,7 +28,7 @@ public class ProfileApiController : ControllerBase
                 name     = user.Name,
                 email    = user.Email,
                 timezone = user.Timezone ?? "",
-                picture  = user.Picture  ?? "",
+                picture  = _storage.Url(user.Picture),
                 status   = user.Status   ?? "",
             }});
         }

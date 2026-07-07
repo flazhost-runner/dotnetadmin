@@ -1,4 +1,5 @@
 @model DotNetAdmin.Core.Data.Entities.User
+@inject IStorageService Storage
 @{
     Layout = "_AdminLayout";
     ViewBag.Title = "Profile";
@@ -61,7 +62,7 @@
         <div class="mb-3">
             <label class="form-label fw-semibold">Picture</label>
             <div class="preview mb-3" id="preview">
-                <img src="@(Model.Picture ?? "/media/access/user/user.png")" style="max-width:160px" class="rounded border p-1">
+                <img src="@(string.IsNullOrEmpty(Model.Picture) ? "/media/access/user/user.png" : Storage.Url(Model.Picture))" style="max-width:160px" class="rounded border p-1">
             </div>
             <input type="file" name="Picture" class="form-control" accept="image/*" onchange="previewImage(event)">
         </div>
