@@ -20,13 +20,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- EF Core 10 -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
+    <!-- EF Core 9 — SELURUH stack dipaku ke 9.0.x. Pomelo (provider MySQL)
+         belum punya rilis EF Core 10 (terbaru 9.0.0); mencampur EF Core 10 +
+         Pomelo 9 memicu MissingMethodException di runtime
+         (AbstractionsStrings.ArgumentIsEmpty berubah di EF Core 10 Abstractions).
+         Paket ASP.NET/Redis/JWT tetap 10.0.* karena itu shared-framework .NET 10,
+         bukan EF Core. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.*">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.*" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.*" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.*" />
 
