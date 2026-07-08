@@ -24,6 +24,24 @@ RUN dotnet publish DotNetAdmin.csproj -c Release -o /out /p:UseAppHost=false
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 
+# ── Managed/serverless MySQL TLS compat (OpenSSL 3.x SECLEVEL) ────────────────
+# RDS MySQL serverless only offers LEGACY TLS ciphers/protocols. .NET's OpenSSL
+# 3.x defaults to SECLEVEL=2 and rejects them → "sslv3 alert handshake failure"
+# → crash at ServerVersion.AutoDetect() on first connection. Relax OpenSSL to
+# accept legacy ciphers (TLS stays ON — same approach as the proven Rust
+# native-tls fix; see FlazCloud bug/dotnet.txt). Written inside the Dockerfile
+# (not a standalone file) so the app-code mirror sync can't --delete it.
+RUN printf '%s\n' \
+    'openssl_conf = default_conf' \
+    '[default_conf]' \
+    'ssl_conf = ssl_sect' \
+    '[ssl_sect]' \
+    'system_default = system_default_sect' \
+    '[system_default_sect]' \
+    'CipherString = DEFAULT@SECLEVEL=0' \
+    'MinProtocol = TLSv1' \
+    > /etc/ssl/openssl-legacy.cnf
+
 COPY --from=build /out .
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 
@@ -40,7 +58,8 @@ RUN chmod +x /app/docker-entrypoint.sh \
 # with strong generated values, and dials logging back to Information.
 ENV PORT=80 \
     ASPNETCORE_ENVIRONMENT=Development \
-    DOTNET_EnableDiagnostics=0
+    DOTNET_EnableDiagnostics=0 \
+    OPENSSL_CONF=/etc/ssl/openssl-legacy.cnf
 
 EXPOSE 80
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
